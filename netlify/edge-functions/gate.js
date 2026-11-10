@@ -3,6 +3,7 @@
 // Changing the password logs everyone out (the cookie is a hash of it).
 const COOKIE = "ts_auth";
 const DAYS = 120;
+const PUBLIC = new Set(["/favicon.svg", "/apple-touch-icon.png", "/favicon.ico"]);
 
 async function token(pw) {
   const data = new TextEncoder().encode("tapwell-school:" + pw);
@@ -14,6 +15,7 @@ function page(error) {
   return new Response(`<!doctype html><html lang="en-IE"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>Tapwell School</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
 :root{--bg:#F2F5F8;--card:#fff;--ink:#16202F;--muted:#5A6577;--line:#D6DEE8;--accent:#2453D6;--accent-ink:#fff;--mint:#12A57C;--bad:#B42336}
 @media (prefers-color-scheme:dark){:root{--bg:#10151E;--card:#171E2A;--ink:#E6ECF4;--muted:#97A3B6;--line:#2A3445;--accent:#7EA2FF;--accent-ink:#0E1320;--mint:#3FDDB0;--bad:#FF7A8A;color-scheme:dark}}
@@ -40,6 +42,7 @@ export default async (req, context) => {
   if (!pw) return context.next(); // no password set: site is open
 
   const url = new URL(req.url);
+  if (PUBLIC.has(url.pathname)) return context.next(); // icons show on the login page too
   const expected = await token(pw);
   const cookies = req.headers.get("cookie") || "";
   const has = cookies.split(/;\s*/).some(c => c === `${COOKIE}=${expected}`);
