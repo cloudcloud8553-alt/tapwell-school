@@ -5,7 +5,7 @@
     { "id": "y1s1", "label": "Year 1 · Semester 1", "modules": [
       { "slug": "econ06029", "name": "Introduction to Microeconomics", "code": "ECON 06029", "lecturer": "Richard Boylan", "pack": true,
         "tests": [
-          { "id": "mcq", "title": "In-class MCQ", "date": "2026-11-11", "weight": "30%" },
+          { "id": "mcq", "title": "In-class MCQ", "date": "2026-11-13", "weight": "30%" },
           { "id": "final", "title": "Final written exam", "date": "2026-12", "weight": "70%" }
         ] },
       { "slug": "acct06080", "name": "Business Communication and Analysis", "code": "ACCT 06080" },
