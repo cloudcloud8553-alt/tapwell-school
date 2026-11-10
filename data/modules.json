@@ -1,0 +1,42 @@
+{
+  "programme": "US845 · Accounting & Finance · TUS Moylish",
+  "current": "y1s1",
+  "semesters": [
+    { "id": "y1s1", "label": "Year 1 · Semester 1", "modules": [
+      { "slug": "econ06029", "name": "Introduction to Microeconomics", "code": "ECON 06029", "lecturer": "Richard Boylan", "pack": true,
+        "tests": [
+          { "id": "mcq", "title": "In-class MCQ", "date": "2026-11-11", "weight": "30%" },
+          { "id": "final", "title": "Final written exam", "date": "2026-12", "weight": "70%" }
+        ] },
+      { "slug": "acct06080", "name": "Business Communication and Analysis", "code": "ACCT 06080" },
+      { "slug": "business-management", "name": "Business Management" },
+      { "slug": "cost-accounting-core", "name": "Cost Accounting – Core" },
+      { "slug": "financial-accounting-principles", "name": "Financial Accounting Principles" },
+      { "slug": "marketing-principles", "name": "Marketing Principles" }
+    ] },
+    { "id": "y1s2", "label": "Year 1 · Semester 2", "modules": [
+      { "slug": "cost-accounting-fundamentals", "name": "Cost Accounting – Fundamentals" },
+      { "slug": "entrepreneurship", "name": "Entrepreneurship" },
+      { "slug": "financial-accounting-fundamentals", "name": "Financial Accounting Fundamentals" },
+      { "slug": "it-data-analysis", "name": "Information Technology and Data Analysis Application" },
+      { "slug": "macroeconomics", "name": "Introduction to Macroeconomics" },
+      { "slug": "quantitative-methods", "name": "Quantitative Methods for Business" }
+    ] },
+    { "id": "y2s1", "label": "Year 2 · Semester 1", "modules": [
+      { "slug": "sage-accounts-payroll", "name": "Computerised Sage Accounts and Payroll" },
+      { "slug": "financial-accounting-companies", "name": "Financial Accounting for Companies" },
+      { "slug": "law-business-1", "name": "Law and Business 1" },
+      { "slug": "management-accounting-decisions", "name": "Management Accounting – Decision Making" },
+      { "slug": "project-planning", "name": "Project Planning & Control" },
+      { "slug": "public-finance", "name": "Public Finance" }
+    ] },
+    { "id": "y2s2", "label": "Year 2 · Semester 2", "modules": [
+      { "slug": "business-tech-analytics", "name": "Business Technology and Data Analytics" },
+      { "slug": "financial-accounting", "name": "Financial Accounting" },
+      { "slug": "income-tax-vat", "name": "Income Tax & VAT" },
+      { "slug": "law-business-2", "name": "Law and Business 2" },
+      { "slug": "management-accounting-planning", "name": "Management Accounting – Planning & Control" },
+      { "slug": "workplace-preparation", "name": "Preparation for the Workplace" }
+    ] }
+  ]
+}
