@@ -12,6 +12,7 @@ Plain static site: no build step. Netlify deploys `main` automatically.
 | `app.js` | Routing, study modes, calculation generators |
 | `data/modules.json` | Every module by semester, plus test dates shown on the home page |
 | `data/<slug>.json` | A module's study pack (only modules with `"pack": true`) |
+| `content/*.js` | Readable source for the newer packs; `node content/build.js` regenerates their JSON |
 | `netlify/edge-functions/gate.js` | Shared-password login |
 
 ## Adding a study pack

@@ -19,9 +19,10 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function parseDate(s) { const [y, m, d] = s.split("-").map(Number); return { date: new Date(y, m - 1, d || 1), exact: !!d }; }
 function daysUntil(s) { const { date } = parseDate(s); const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((date - t) / 864e5); }
 function dateLabel(s) { const { date, exact } = parseDate(s); return exact ? `${DAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]}` : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`; }
-function duePill(s) {
+const tLabel = t => t.when || dateLabel(t.date);
+function duePill(s, when) {
   const { exact } = parseDate(s); const d = daysUntil(s);
-  if (!exact) return `<span class="pill later">${dateLabel(s)}</span>`;
+  if (!exact) return `<span class="pill later">${esc(when || dateLabel(s))}</span>`;
   if (d < 0) return `<span class="pill later">done</span>`;
   if (d === 0) return `<span class="pill soon">today</span>`;
   if (d === 1) return `<span class="pill soon">tomorrow</span>`;
@@ -74,7 +75,7 @@ function renderHome() {
       return `<a class="un" href="#${m.slug}--${t.id}">
         <span class="when">${exact ? `${DAYS[date.getDay()]}<b>${date.getDate()}</b>${MONTHS[date.getMonth()]}` : `<b>${MONTHS[date.getMonth()]}</b>${date.getFullYear()}`}</span>
         <span class="what"><strong>${esc(t.title)}</strong><span>${esc(m.name)} · ${esc(t.weight)}</span></span>
-        ${duePill(t.date)}</a>`;
+        ${duePill(t.date, t.when)}</a>`;
     }).join("")}</div></section>` : ""}
     ${CAT.semesters.map(s => {
       const isOpen = s.id === CAT.current || open.includes(s.id);
@@ -95,7 +96,7 @@ function moduleCard(m) {
   return `<a class="mod${live ? "" : " empty"}" href="#${m.slug}">
     ${m.code ? `<span class="code">${esc(m.code)}</span>` : ""}
     <h3>${esc(m.name)}</h3>
-    <span class="foot">${live ? `<span class="live">● ${m.tests.length} test${m.tests.length > 1 ? "s" : ""}</span>${next ? ` · next ${esc(dateLabel(next.date))}` : ""}` : "No material yet"}</span>
+    <span class="foot">${live ? `<span class="live">● ${m.tests.length} test${m.tests.length > 1 ? "s" : ""}</span>${next ? ` · ${esc(tLabel(next))}` : ""}` : m.note ? "Assignments only" : "No material yet"}</span>
   </a>`;
 }
 
@@ -106,8 +107,8 @@ function renderModule(m, pack) {
   if (!pack) {
     app.innerHTML = topBar(crumbs) + `
       <section class="hero"><span class="eyebrow">${esc(m.code || m.sem.label)}</span><h1>${esc(m.name)}</h1></section>
-      <div class="emptystate"><h3>No material yet</h3>
-        <p class="muted">This library fills up as the semester goes. Study packs are added about a week before each test, built from the Moodle slides, tutorial sheets and past papers.</p></div>${footer}`;
+      <div class="emptystate"><h3>${m.note ? "No exam to study for" : "No material yet"}</h3>
+        <p class="muted">${m.note ? esc(m.note) : "This library fills up as the semester goes. Study packs are added about a week before each test, built from the Moodle slides, tutorial sheets and past papers."}</p></div>${footer}`;
     return;
   }
   app.innerHTML = topBar(crumbs) + `
@@ -115,7 +116,7 @@ function renderModule(m, pack) {
       <p class="muted">${pack.questions.length} practice questions · ${pack.cards.length} flashcards · ${pack.written.length} exam-style questions · ${pack.topics.length} topics</p></section>
     <section class="stack"><h2>Tests</h2><div class="tests">${pack.tests.map(t => `
       <a class="test" href="#${m.slug}--${t.id}">
-        <div class="row" style="justify-content:space-between"><span class="eyebrow">${esc(dateLabel(t.date))} · ${esc(t.weight)}</span>${duePill(t.date)}</div>
+        <div class="row" style="justify-content:space-between"><span class="eyebrow">${esc(tLabel(t))} · ${esc(t.weight)}</span>${duePill(t.date, t.when)}</div>
         <h3>${esc(t.title)}</h3><span class="meta">${esc(t.format)}</span></a>`).join("")}</div></section>
     <section class="stack"><h2>Notes</h2>${notesHTML(pack)}</section>
     <p class="muted" style="font-size:13px">Sources: ${esc(pack.sources)}</p>${footer}`;
@@ -126,16 +127,21 @@ function notesHTML(pack, only) {
 }
 
 // ---------- test ----------
-const MODE_LABEL = { mock: "Timed mock", drill: "Question drill", cards: "Flashcards", calc: "Calculations", written: "Exam questions", notes: "Notes" };
-const TECH_LABEL = { notes: "Read notes", drill: "Question drill", cards: "Flashcards", calc: "Calculations", written: "Exam questions" };
+const MODE_LABEL = { sheet: "Open-book sheet", mock: "Timed mock", drill: "Question drill", cards: "Flashcards", calc: "Calculations", written: "Exam questions", notes: "Notes" };
+const TECH_LABEL = { sheet: "Open-book sheet", notes: "Read notes", drill: "Question drill", cards: "Flashcards", calc: "Calculations", written: "Exam questions" };
 
 function renderTest(m, pack, test) {
   document.title = `${test.title} · ${m.name}`;
+  if (test.topics) { // scope this test's page to its own topics
+    const keep = x => test.topics.includes(x.t);
+    pack = { ...pack, topics: pack.topics.filter(t => test.topics.includes(t.id)), questions: pack.questions.filter(keep),
+      cards: pack.cards.filter(keep), calc: pack.calc.filter(keep), written: pack.written.filter(keep), _all: pack };
+  }
   const ctx = { m, pack, test, topicName: id => (pack.topics.find(t => t.id === id) || {}).name || id };
   const modes = test.modes;
   app.innerHTML = topBar([["Library", "home"], [m.name, m.slug], [test.title]]) + `
     <section class="hero"><span class="eyebrow">${esc(m.name)}</span><h1>${esc(test.title)}</h1>
-      <div class="chips"><span class="chip">${esc(dateLabel(test.date))}</span><span class="chip">${esc(test.format)}</span><span class="chip"><strong>${esc(test.weight)}</strong> of the module</span></div></section>
+      <div class="chips"><span class="chip">${esc(tLabel(test))}</span><span class="chip">${esc(test.format)}</span><span class="chip"><strong>${esc(test.weight)}</strong> of the module</span></div></section>
     <section class="stack"><h2>How to study each topic</h2>
       <div class="plan">${pack.topics.map(t => {
         const usable = t.modes.filter(x => x === "notes" || modes.includes(x) || (x === "drill" && modes.includes("mock")));
@@ -151,7 +157,7 @@ function renderTest(m, pack, test) {
     app.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === mode));
     if (cleanup) { cleanup(); cleanup = null; }
     const panel = document.getElementById("panel");
-    ({ mock: modeMock, drill: modeDrill, cards: modeCards, calc: modeCalc, written: modeWritten, notes: modeNotes })[mode](panel, ctx, topic);
+    ({ sheet: modeSheet, mock: modeMock, drill: modeDrill, cards: modeCards, calc: modeCalc, written: modeWritten, notes: modeNotes })[mode](panel, ctx, topic);
   };
   app.querySelectorAll(".tab").forEach(b => b.onclick = () => open(b.dataset.tab));
   app.querySelectorAll(".tbtn").forEach(b => b.onclick = () => {
@@ -187,7 +193,7 @@ function modeMock(panel, ctx) {
   </div>`;
   panel.querySelector("#go-mock").onclick = () => runQuiz(panel, ctx, { items: pickMock(ctx.pack.questions, n), minutes, learn: false, histKey: key });
   const gm = panel.querySelector("#go-missed");
-  if (gm) gm.onclick = () => runQuiz(panel, ctx, { items: shuffle(missed.map(i => ctx.pack.questions[i]).filter(Boolean)), learn: true, missedMode: true });
+  if (gm) gm.onclick = () => runQuiz(panel, ctx, { items: shuffle(missed.map(i => (ctx.pack._all || ctx.pack).questions[i]).filter(q => q && ctx.pack.questions.includes(q)).filter(Boolean)), learn: true, missedMode: true });
 }
 function modeDrill(panel, ctx, topic) {
   const qs = ctx.pack.questions, counts = countBy(qs);
@@ -209,7 +215,7 @@ function pickMock(bank, total) {
   return shuffle(keys.flatMap(k => shuffle(by[k]).slice(0, Math.min(alloc[k], by[k].length))));
 }
 function runQuiz(panel, ctx, opt) {
-  const bank = ctx.pack.questions;
+  const bank = (ctx.pack._all || ctx.pack).questions; // full list, so missed-question ids stay stable
   const S = { items: opt.items.map(q => ({ q, order: shuffle(q.o.map((_, i) => i)), pick: null, flag: false })), i: 0, end: opt.minutes ? Date.now() + opt.minutes * 60000 : null };
   const missedKey = `missed.${ctx.m.slug}`;
   let tick = null;
@@ -281,7 +287,7 @@ function runQuiz(panel, ctx, opt) {
       d.children[2].textContent = "Your answer: " + (x.pick === null ? "(left blank)" : x.q.o[x.pick]);
       d.children[3].textContent = "Correct: " + x.q.o[x.q.a]; d.children[4].textContent = x.q.e; rv.appendChild(d);
     });
-    panel.querySelector("#again").onclick = () => opt.learn ? modeDrill(panel, ctx) : runQuiz(panel, ctx, { ...opt, items: pickMock(bank, opt.items.length) });
+    panel.querySelector("#again").onclick = () => opt.learn ? modeDrill(panel, ctx) : runQuiz(panel, ctx, { ...opt, items: pickMock(ctx.pack.questions, opt.items.length) });
     panel.scrollIntoView({ block: "start" });
   };
   $("prev").onclick = () => { if (S.i > 0) { S.i--; draw(); } };
@@ -424,6 +430,158 @@ const GEN = {
     return { prompt: kind === "tr" ? `Find the <b>total revenue</b> at ${q} units.` : `Find the <b>marginal revenue</b> of unit ${q}.`, table: tableHTML(head, rows), answer: val, tol: 0,
       working: kind === "tr" ? `TR = P × Q = ${P(q)} × ${q} = <b>${val}</b>` : `MR = TR(${q}) − TR(${q - 1}) = ${TR(q)} − ${TR(q - 1)} = <b>${val}</b>${val < P(q) ? `<br>MR (${val}) < price (${P(q)}): to sell one more, the firm cuts the price on every unit.` : ""}` };
   } },
+  // ----- Financial accounting -----
+  "dep-sl": { name: "Straight line", make() {
+    const cost = R(8, 90) * 1000, rate = pick([10, 12.5, 15, 20, 25]), n = R(1, 4), dep = cost * rate / 100;
+    const kind = pick(["charge", "acc", "nbv"]);
+    const val = kind === "charge" ? dep : kind === "acc" ? dep * n : cost - dep * n;
+    return { prompt: `A machine cost €${fmt(cost)}. It's depreciated at ${rate}% straight line, with a full year's charge in the year of purchase. ${kind === "charge" ? "What is the annual depreciation charge?" : kind === "acc" ? `What is the accumulated depreciation after ${n} year${n > 1 ? "s" : ""}?` : `What is the net book value after ${n} year${n > 1 ? "s" : ""}?`}`,
+      answer: r2(val), tol: 0.5,
+      working: `Annual charge = ${fmt(cost)} × ${rate}% = ${fmt(dep)} (the same every year)${kind !== "charge" ? `<br>Acc dep after ${n} yr = ${fmt(dep)} × ${n} = ${fmt(dep * n)}` : ""}${kind === "nbv" ? `<br>NBV = ${fmt(cost)} − ${fmt(dep * n)} = <b>${fmt(val)}</b>` : ""}` };
+  } },
+  "dep-rb": { name: "Reducing balance", make() {
+    const cost = R(8, 80) * 1000, rate = pick([15, 20, 25, 30]), n = R(2, 4);
+    let nbv = cost; const rows = [];
+    for (let y = 1; y <= n; y++) { const d = r2(nbv * rate / 100); rows.push([y, fmt(nbv), fmt(d), fmt(r2(nbv - d))]); nbv = r2(nbv - d); }
+    const kind = pick(["charge", "nbv"]); const last = rows[n - 1];
+    const val = kind === "charge" ? Number(last[2].replace(/,/g, "")) : nbv;
+    return { prompt: `A vehicle cost €${fmt(cost)}, depreciated at ${rate}% reducing balance (full year in year of purchase). ${kind === "charge" ? `What is the depreciation charge in year ${n}?` : `What is the NBV at the end of year ${n}?`}`,
+      answer: val, tol: 1,
+      working: `Each year: NBV × ${rate}%<br>${rows.map(r => `Yr ${r[0]}: ${r[1]} × ${rate}% = ${r[2]} → NBV ${r[3]}`).join("<br>")}<br>Answer: <b>${fmt(val)}</b>` };
+  } },
+  "dep-months": { name: "Part-year (months owned)", make() {
+    const cost = R(4, 60) * 100, rate = pick([10, 12.5, 15, 20, 25]), m = R(2, 12);
+    const months = 12 - m + 1, val = r2(cost * rate / 100 * months / 12);
+    return { prompt: `Policy: one month's ownership means one month's depreciation. An asset costing €${fmt(cost)} is bought on 1 ${MONTHS[m - 1]}. Year end is 31 December, rate ${rate}% straight line. What is the charge for the first year?`,
+      answer: val, tol: 0.5,
+      working: `Months owned: ${MONTHS[m - 1]}–Dec = ${months}<br>${fmt(cost)} × ${rate}% × ${months}/12 = <b>${fmt(val)}</b>` };
+  } },
+  "dep-disposal": { name: "Disposals (profit or loss)", make() {
+    const sl = Math.random() < .55, cost = R(10, 90) * 1000, rate = sl ? pick([10, 15, 20]) : pick([20, 25]), k = R(1, sl ? 5 : 3);
+    let acc = 0, nbv = cost; const lines = [];
+    for (let y = 1; y <= k; y++) { const d = sl ? cost * rate / 100 : r2(nbv * rate / 100); acc = r2(acc + d); nbv = r2(cost - acc); lines.push(`Yr ${y}: ${fmt(d)}`); }
+    const proceeds = Math.round(nbv * (0.7 + Math.random() * 0.6) / 50) * 50, pl = r2(proceeds - nbv);
+    const kind = pick(["acc", "pl", "pl"]);
+    return { prompt: `An asset cost €${fmt(cost)} and was depreciated at ${rate}% ${sl ? "straight line" : "reducing balance"}. It was held for ${k} full financial year${k > 1 ? "s" : ""} before the year of sale (full year in year of purchase, none in year of sale) and sold for €${fmt(proceeds)}. ${kind === "acc" ? "What is the accumulated depreciation on this asset at disposal?" : "What is the profit or loss on disposal? Enter a loss as a negative number."}`,
+      answer: kind === "acc" ? acc : pl, tol: 1,
+      working: `${lines.join(" · ")} → acc dep <b>${fmt(acc)}</b><br>NBV = ${fmt(cost)} − ${fmt(acc)} = ${fmt(nbv)}${kind === "pl" ? `<br>Proceeds ${fmt(proceeds)} − NBV ${fmt(nbv)} = <b>${pl >= 0 ? "profit " + fmt(pl) : "loss " + fmt(-pl)}</b> (${pl >= 0 ? "over" : "under"}-depreciated)` : ""}` };
+  } },
+  "trade-in": { name: "Trade-ins", make() {
+    const newCost = R(25, 70) * 1000, cash = R(10, Math.floor(newCost / 1000) - 8) * 1000, allow = newCost - cash;
+    const oldCost = R(20, 60) * 1000, acc = Math.round(oldCost * pick([0.2, 0.36, 0.488, 0.25, 0.4375]));
+    const nbv = oldCost - acc, pl = allow - nbv, kind = pick(["allow", "pl"]);
+    return { prompt: `A new van costing €${fmt(newCost)} is acquired for €${fmt(cash)} cash after trading in an old van (cost €${fmt(oldCost)}, accumulated depreciation €${fmt(acc)}). ${kind === "allow" ? "What is the trade-in allowance?" : "What is the profit or loss on the old van? Enter a loss as a negative number."}`,
+      answer: kind === "allow" ? allow : pl, tol: 0.5,
+      working: `Trade-in allowance = ${fmt(newCost)} − ${fmt(cash)} = <b>${fmt(allow)}</b> (Cr Disposal, Dr Cost a/c)${kind === "pl" ? `<br>Old van NBV = ${fmt(oldCost)} − ${fmt(acc)} = ${fmt(nbv)}<br>${fmt(allow)} − ${fmt(nbv)} = <b>${pl >= 0 ? "profit " + fmt(pl) : "loss " + fmt(-pl)}</b>` : ""}<br>The new van goes into the Cost a/c at its full €${fmt(newCost)}.` };
+  } },
+  "dep-charge-pool": { name: "Year-end charge after a disposal", make() {
+    const sl = Math.random() < .5, rate = sl ? pick([10, 15, 20]) : pick([20, 25]);
+    const open = R(15, 45) * 10000, accOpen = Math.round(open * (0.25 + Math.random() * 0.2) / 100) * 100;
+    const add = R(10, 60) * 1000, dispCost = R(10, 40) * 1000, dispAcc = Math.round(dispCost * (0.3 + Math.random() * 0.3) / 25) * 25;
+    const close = open + add - dispCost, base = sl ? close : close - (accOpen - dispAcc), val = r2(base * rate / 100);
+    return { prompt: `Opening cost €${fmt(open)}, opening acc dep €${fmt(accOpen)}. Additions €${fmt(add)}. An asset costing €${fmt(dispCost)} (acc dep €${fmt(dispAcc)}) was sold. Depreciation is ${rate}% ${sl ? "straight line" : "reducing balance"} on assets held at year end. What is this year's depreciation charge?`,
+      answer: val, tol: 1,
+      working: `Closing cost = ${fmt(open)} + ${fmt(add)} − ${fmt(dispCost)} = ${fmt(close)}<br>${sl ? `SL: ${fmt(close)} × ${rate}% = <b>${fmt(val)}</b>` : `Acc dep on assets kept = ${fmt(accOpen)} − ${fmt(dispAcc)} = ${fmt(accOpen - dispAcc)}<br>RB: (${fmt(close)} − ${fmt(accOpen - dispAcc)}) × ${rate}% = <b>${fmt(val)}</b>`}` };
+  } },
+  "cost-of-sales": { name: "Cost of sales and gross profit", make() {
+    const open = R(20, 120) * 1000, pur = R(150, 400) * 1000, ret = R(5, 30) * 1000, carr = R(5, 25) * 1000, close = R(20, 150) * 1000;
+    const sales = R(500, 990) * 1000, rin = R(10, 60) * 1000, cos = open + pur - ret + carr - close, gp = sales - rin - cos;
+    const kind = pick(["cos", "gp"]);
+    return { prompt: `Opening inventory €${fmt(open)}, purchases €${fmt(pur)}, purchases returns €${fmt(ret)}, carriage inwards €${fmt(carr)}, closing inventory €${fmt(close)}${kind === "gp" ? `, sales €${fmt(sales)}, sales returns €${fmt(rin)}` : ""}. Calculate the ${kind === "cos" ? "cost of sales" : "gross profit"}.`,
+      answer: kind === "cos" ? cos : gp, tol: 0.5,
+      working: `Cost of sales = ${fmt(open)} + ${fmt(pur)} − ${fmt(ret)} + ${fmt(carr)} − ${fmt(close)} = ${fmt(cos)}${kind === "gp" ? `<br>Net sales = ${fmt(sales)} − ${fmt(rin)} = ${fmt(sales - rin)}<br>GP = ${fmt(sales - rin)} − ${fmt(cos)} = <b>${fmt(gp)}</b>` : ""}` };
+  } },
+  "vat-line": { name: "Day book lines (VAT 23%)", make() {
+    const units = R(40, 1800), price = R(80, 650) / 100, net = r2(units * price), vat = r2(net * 0.23), tot = r2(net + vat);
+    const kind = pick(["net", "vat", "total"]);
+    return { prompt: `Sold ${fmt(units)} units @ €${price.toFixed(2)} each (exclusive of VAT at 23%). What is the ${kind === "net" ? "net amount" : kind === "vat" ? "VAT" : "total (incl. VAT)"}?`,
+      answer: kind === "net" ? net : kind === "vat" ? vat : tot, tol: 0.015,
+      working: `Net = ${fmt(units)} × ${price.toFixed(2)} = ${net.toFixed(2)}<br>VAT = ${net.toFixed(2)} × 23% = ${vat.toFixed(2)}<br>Total = ${tot.toFixed(2)}` };
+  } },
+  // ----- Cost accounting -----
+  "stock-levels": { name: "Re-order, min, max and average levels", make() {
+    const norm = R(10, 80) * 10, maxU = norm + R(2, 8) * 10, minU = norm - R(2, 6) * 10, lo = R(5, 12), hi = lo + 2 * R(1, 3), rq = R(10, 80) * 100;
+    const nl = (lo + hi) / 2, rol = maxU * hi, mn = rol - norm * nl, mx = rol - minU * lo + rq, avg = mn + rq / 2;
+    const kind = pick(["rol", "min", "max", "avg"]);
+    const val = { rol, min: mn, max: mx, avg }[kind];
+    return { prompt: `Usage per day: normal ${norm}, minimum ${minU}, maximum ${maxU}. Lead time ${lo}–${hi} days. Re-order quantity ${fmt(rq)}. Calculate the <b>${{ rol: "re-order level", min: "minimum (safety) level", max: "maximum level", avg: "average inventory" }[kind]}</b>.`,
+      answer: val, tol: 0.5,
+      working: `ROL = max usage × max lead time = ${maxU} × ${hi} = ${fmt(rol)}${kind !== "rol" ? `<br>Normal lead time = (${lo} + ${hi}) ÷ 2 = ${nl}` : ""}${kind === "min" || kind === "avg" ? `<br>Min = ${fmt(rol)} − (${norm} × ${nl}) = ${fmt(mn)}` : ""}${kind === "max" ? `<br>Max = ${fmt(rol)} − (${minU} × ${lo}) + ${fmt(rq)} = <b>${fmt(mx)}</b>` : ""}${kind === "avg" ? `<br>Average = ${fmt(mn)} + ½ × ${fmt(rq)} = <b>${fmt(avg)}</b>` : ""}` };
+  } },
+  "eoq": { name: "EOQ", make() {
+    for (;;) {
+      const e = R(2, 40) * 50, ch = pick([0.5, 1, 2, 4, 5, 8, 10]), co = pick([10, 20, 25, 32, 40, 50, 64, 80, 100]);
+      const d = e * e * ch / (2 * co);
+      if (Number.isInteger(d) && d >= 1000 && d <= 500000)
+        return { prompt: `Ordering cost €${co} per order, annual demand ${fmt(d)} units, holding cost €${ch} per unit per year. Calculate the economic order quantity.`,
+          answer: e, tol: 0.5, working: `EOQ = √(2 × Co × D ÷ Ch) = √(2 × ${co} × ${fmt(d)} ÷ ${ch}) = √${fmt(e * e)} = <b>${fmt(e)}</b>` };
+    }
+  } },
+  "fifo-lifo-wa": { name: "FIFO, LIFO and weighted average", make() {
+    const p0 = R(4, 12), ev = [];
+    let qty = R(4, 10) * 10; ev.push({ type: "in", q: qty, p: p0 });
+    let price = p0, held = qty;
+    for (let i = 0; i < 4; i++) {
+      if (i % 2 === 0) { const q = R(2, Math.max(2, Math.floor(held / 10) - 1)) * 10; ev.push({ type: "out", q }); held -= q; }
+      else { price += R(1, 4); const q = R(3, 8) * 10; ev.push({ type: "in", q, p: price }); held += q; }
+    }
+    const method = pick(["FIFO", "LIFO", "Weighted average"]);
+    // perpetual: layers for FIFO/LIFO, running average for WA
+    let layers = [], wq = 0, wv = 0;
+    for (const e of ev) {
+      if (e.type === "in") { layers.push({ q: e.q, p: e.p }); wv += e.q * e.p; wq += e.q; }
+      else {
+        let need = e.q;
+        while (need > 0) { const L = method === "FIFO" ? layers[0] : layers[layers.length - 1]; const take = Math.min(need, L.q); L.q -= take; need -= take; if (!L.q) method === "FIFO" ? layers.shift() : layers.pop(); }
+        const avg = wv / wq; wv -= e.q * avg; wq -= e.q;
+      }
+    }
+    const val = method === "Weighted average" ? r2(wv) : layers.reduce((a, L) => a + L.q * L.p, 0);
+    const list = ev.map((e, i) => `${i + 1}. ${e.type === "in" ? `Received ${e.q} @ €${e.p}` : `Issued ${e.q}`}`).join("<br>");
+    return { prompt: `${list}<br><br>Calculate the value of closing stock using <b>${method}</b>${method === "Weighted average" ? " (recalculate the average after each receipt; to 2 d.p.)" : ""}.`,
+      answer: val, tol: method === "Weighted average" ? 1 : 0.5,
+      working: method === "Weighted average" ? `Running average: recalculate total value ÷ units after each receipt, issue at that average.<br>Closing: ${wq} units, value <b>${fmt(val)}</b>`
+        : `${method === "FIFO" ? "Issues come from the OLDEST layers, so what's left is the newest stock." : "Issues come from the NEWEST layers at the time of each issue."}<br>Closing layers: ${layers.map(L => `${L.q} @ €${L.p}`).join(" + ")} = <b>€${fmt(val)}</b>` };
+  } },
+  "overtime": { name: "Overtime and the premium", make() {
+    const rate = R(8, 20), sat = R(2, 8), sun = R(0, 6), basic = 40;
+    const ot = sat + sun, prem = r2(sat * rate * 0.5 + sun * rate), total = basic * rate + ot * rate + prem;
+    const kind = pick(["total", "prem"]);
+    return { prompt: `Normal week 40 hours at €${rate}/hr. The employee worked ${40 + ot} hours: ${sat} on Saturday (time-and-a-half)${sun ? ` and ${sun} on Sunday (double time)` : ""}, as general company policy. ${kind === "total" ? "What are total gross wages?" : "How much is charged to production overhead (the overtime premium)?"}`,
+      answer: kind === "total" ? total : prem, tol: 0.01,
+      working: `Basic 40 × ${rate} = ${fmt(basic * rate)}<br>Overtime ${ot} × ${rate} = ${fmt(ot * rate)} (direct)<br>Premium ${sat} × ${rate} × 0.5${sun ? ` + ${sun} × ${rate} × 1` : ""} = ${fmt(prem)} (production overhead)<br>Total = <b>${fmt(total)}</b>` };
+  } },
+  "diff-piece": { name: "Differential piecework", make() {
+    const t1 = R(8, 20) * 10, t2 = t1 + R(1, 5) * 10, r1 = R(80, 200) / 100, r2v = r2(r1 + R(10, 50) / 100), r3 = r2(r2v + R(10, 50) / 100), u = t1 + R(-10, 12) * 5;
+    const a = Math.min(u, t1), b = Math.max(0, Math.min(u, t2) - t1), c = Math.max(0, u - t2), pay = r2(a * r1 + b * r2v + c * r3);
+    return { prompt: `Up to ${t1} units: €${r1.toFixed(2)} each. ${t1 + 1}–${t2} units: €${r2v.toFixed(2)} for each unit over ${t1}. Over ${t2}: €${r3.toFixed(2)} for each unit over ${t2}. An employee makes ${u} units. Calculate pay.`,
+      answer: pay, tol: 0.01, working: `${a} × ${r1.toFixed(2)}${b ? ` + ${b} × ${r2v.toFixed(2)}` : ""}${c ? ` + ${c} × ${r3.toFixed(2)}` : ""} = <b>€${fmt(pay)}</b>` };
+  } },
+  "turnover": { name: "Labour turnover", make() {
+    const open = R(40, 400), close = open + R(-20, 20), left = R(5, Math.floor(open / 3)), rep = left - R(0, Math.min(5, left - 1));
+    const avg = (open + close) / 2, val = r2(rep / avg * 100);
+    return { prompt: `${open} employees at the start of the year and ${close} at the end. ${left} left during the year and ${rep} of them were replaced. Calculate labour turnover % (2 d.p.).`,
+      answer: val, tol: 0.015, working: `Average workforce = (${open} + ${close}) ÷ 2 = ${avg}<br>Turnover = ${rep} ÷ ${avg} × 100 = <b>${val.toFixed(2)}%</b> (use leavers REPLACED, not all leavers)` };
+  } },
+  "oar": { name: "OAR and under/over absorption", make() {
+    const bh = R(20, 250) * 1000, oar = pick([1.5, 2, 2.5, 3, 4, 5, 6]), bo = bh * oar, ah = Math.round(bh * (0.85 + Math.random() * 0.3) / 1000) * 1000;
+    const ao = Math.round(bo * (0.85 + Math.random() * 0.3) / 1000) * 1000, abs = ah * oar, diff = abs - ao;
+    if (Math.random() < .35) return { prompt: `Budgeted production overheads €${fmt(bo)}, budgeted machine hours ${fmt(bh)}. Calculate the overhead absorption rate per machine hour.`, answer: oar, tol: 0.005, working: `OAR = ${fmt(bo)} ÷ ${fmt(bh)} = <b>€${oar}</b> per machine hour` };
+    const ans = diff === 0 ? "Neither" : `${diff > 0 ? "Over" : "Under"}-absorbed €${fmt(Math.abs(diff))}`;
+    const alt = `${diff > 0 ? "Under" : "Over"}-absorbed €${fmt(Math.abs(diff))}`, alt2 = `Under-absorbed €${fmt(Math.abs(ao - bo))}`, alt3 = `Over-absorbed €${fmt(Math.abs(ao - bo) + 1000)}`;
+    return { prompt: `OAR €${oar} per labour hour. Actual hours ${fmt(ah)}, actual overheads €${fmt(ao)}. The overheads were:`,
+      choices: shuffle([...new Set([ans, alt, alt2, alt3])]).slice(0, 4).concat([]), answer: ans,
+      working: `Absorbed = ${fmt(ah)} × ${oar} = ${fmt(abs)}<br>Actual = ${fmt(ao)}<br>${abs < ao ? "Absorbed < actual → UNDER-absorbed → Dr P&L" : abs > ao ? "Absorbed > actual → OVER-absorbed → Cr P&L" : "No difference"}` };
+  } },
+  "selling-price": { name: "Selling price build-up", make() {
+    const m = R(2, 6), mp = R(3, 12), lh = pick([0.5, 1, 1.5, 2, 3]), lr = R(10, 25), de = R(0, 12);
+    const dm = m * mp, dl = lh * lr, prime = dm + dl + de, poh = pick([15, 20, 25, 40]), adm = pick([10, 12.5, 15]), sd = pick([10, 12.5, 15]), mu = pick([10, 20, 25, 30]);
+    const pc = r2(prime * (1 + poh / 100)), tc = r2(pc + pc * adm / 100 + pc * sd / 100), sp = r2(tc * (1 + mu / 100));
+    const kind = pick(["prime", "pc", "sp", "sp"]);
+    return { prompt: `Materials ${m}m @ €${mp}/m. Labour ${lh} hrs @ €${lr}/hr. Direct expenses €${de}. Production overhead ${poh}% of prime cost. Admin ${adm}% and S&D ${sd}% of production cost. Profit ${mu}% of total cost. Calculate the <b>${{ prime: "prime cost", pc: "production cost", sp: "selling price" }[kind]}</b>.`,
+      answer: { prime, pc, sp }[kind], tol: 0.02,
+      working: `Prime = ${fmt(dm)} + ${fmt(dl)} + ${de} = ${fmt(prime)}<br>Production cost = ${fmt(prime)} + ${poh}% = ${fmt(pc)}<br>Total cost = ${fmt(pc)} + ${adm}% + ${sd}% = ${fmt(tc)}<br>Selling price = ${fmt(tc)} + ${mu}% = <b>${fmt(sp)}</b>` };
+  } },
 };
 function modeCalc(panel, ctx, topic) {
   const gens = ctx.pack.calc.filter(g => GEN[g.id]);
@@ -482,11 +640,12 @@ function modeWritten(panel, ctx, topic) {
   const sel = new Set(topic ? [topic] : Object.keys(counts));
   const key = `written.${ctx.m.slug}`; const scores = store.get(key, {});
   panel.innerHTML = `<div class="sheet stack"><span class="eyebrow">Past-paper practice</span><h3>Exam questions</h3>
-    <p class="muted">Real questions from the last three winter papers. Write your answer (or plan it in bullet points), then reveal the marking points and tick the ones you covered. Each point you miss is marks lost.</p>
+    <p class="muted">Exam-style questions, with the source of each one shown (past papers, tutorials, lecture slides). Write your answer or plan it in bullet points, then reveal the marking points and tick the ones you covered. Each point you miss is marks lost.</p>
     <div id="flt"></div><div class="stack" id="wl"></div></div>`;
   const draw = () => {
     const list = panel.querySelector("#wl"); list.innerHTML = "";
-    items.forEach((w, i) => {
+    items.forEach(w => {
+      const i = (ctx.pack._all || ctx.pack).written.indexOf(w);
       if (!sel.has(w.t)) return;
       const best = scores[i];
       const d = document.createElement("details"); d.className = "note";
@@ -509,6 +668,14 @@ function modeWritten(panel, ctx, topic) {
     });
   };
   panel.querySelector("#flt").appendChild(topicFilter(ctx, counts, sel, draw)); draw();
+}
+
+// ---------- printable open-book sheet ----------
+function modeSheet(panel, ctx) {
+  const src = (ctx.pack._all || ctx.pack).sheet;
+  panel.innerHTML = `<div class="sheet stack printable">${src || "<p>No sheet for this test.</p>"}
+    <div class="row noprint"><button class="btn" id="print">Print this sheet</button><span class="muted" style="font-size:13px">Printed notes are allowed in the test. Bring this plus your worked tutorial answers.</span></div></div>`;
+  panel.querySelector("#print").onclick = () => { document.body.classList.add("printing"); window.print(); setTimeout(() => document.body.classList.remove("printing"), 500); };
 }
 
 // ---------- notes ----------
