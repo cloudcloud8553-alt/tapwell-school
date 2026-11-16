@@ -42,6 +42,7 @@ export default async (req, context) => {
   if (!pw) return context.next(); // no password set: site is open
 
   const url = new URL(req.url);
+  if (url.hostname === "school.tapwell.ie") return Response.redirect(`https://study.tapwell.ie${url.pathname}${url.search}`, 301); // old address
   if (PUBLIC.has(url.pathname)) return context.next(); // icons show on the login page too
   const expected = await token(pw);
   const cookies = req.headers.get("cookie") || "";
