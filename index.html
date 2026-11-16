@@ -210,6 +210,11 @@ footer{font-size:12.5px;color:var(--muted);text-align:center;margin-top:20px}
   .un .pill{grid-column:2;justify-self:start}
 }
 .printable h2{font-size:22px}
+.infobox{overflow-wrap:anywhere}
+.chip{max-width:100%;overflow-wrap:anywhere}
+.infobox ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.infobox li.todo::marker{content:"→  ";color:var(--demand);font-weight:700}
+.infobox li.todo{color:var(--ink)}
 .taccount{width:100%;table-layout:fixed}
 .taccount th,.taccount td{text-align:left!important;font-family:var(--body)!important;width:50%}
 .printable h3{margin-top:6px;color:var(--accent)}

@@ -16,12 +16,13 @@ const fmt = n => Number(n).toLocaleString("en-IE", { maximumFractionDigits: 2 })
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-function parseDate(s) { const [y, m, d] = s.split("-").map(Number); return { date: new Date(y, m - 1, d || 1), exact: !!d }; }
+function parseDate(s) { const [y, m, d] = s.split("-").map(Number); return { date: new Date(y, m - 1, d || 4), exact: !!d }; } // month-only = exam period, sorts after the 1st–3rd
 function daysUntil(s) { const { date } = parseDate(s); const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((date - t) / 864e5); }
 function dateLabel(s) { const { date, exact } = parseDate(s); return exact ? `${DAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]}` : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`; }
 const tLabel = t => t.when || dateLabel(t.date);
-function duePill(s, when) {
+function duePill(s, when, until) {
   const { exact } = parseDate(s); const d = daysUntil(s);
+  if (until && d <= 0 && daysUntil(until) >= 0) return `<span class="pill soon">on now</span>`;
   if (!exact) return `<span class="pill later">${esc(when || dateLabel(s))}</span>`;
   if (d < 0) return `<span class="pill later">done</span>`;
   if (d === 0) return `<span class="pill soon">today</span>`;
@@ -61,7 +62,7 @@ window.addEventListener("hashchange", route);
 function renderHome() {
   document.title = "Tapwell School";
   const upcoming = allModules().flatMap(m => (m.tests || []).map(t => ({ m, t })))
-    .filter(x => daysUntil(x.t.date) >= 0 || !parseDate(x.t.date).exact)
+    .filter(x => !x.t.done && (daysUntil(x.t.until || x.t.date) >= 0 || !parseDate(x.t.date).exact))
     .sort((a, b) => parseDate(a.t.date).date - parseDate(b.t.date).date);
   const open = store.get("openShelves", [CAT.current]);
   app.innerHTML = topBar() + `
@@ -75,7 +76,7 @@ function renderHome() {
       return `<a class="un" href="#${m.slug}--${t.id}">
         <span class="when">${exact ? `${DAYS[date.getDay()]}<b>${date.getDate()}</b>${MONTHS[date.getMonth()]}` : `<b>${MONTHS[date.getMonth()]}</b>${date.getFullYear()}`}</span>
         <span class="what"><strong>${esc(t.title)}</strong><span>${esc(m.name)} · ${esc(t.weight)}</span></span>
-        ${duePill(t.date, t.when)}</a>`;
+        ${duePill(t.date, t.when, t.until)}</a>`;
     }).join("")}</div></section>` : ""}
     ${CAT.semesters.map(s => {
       const isOpen = s.id === CAT.current || open.includes(s.id);
@@ -92,7 +93,7 @@ function renderHome() {
 }
 function moduleCard(m) {
   const live = m.pack && (m.tests || []).length;
-  const next = (m.tests || []).find(t => daysUntil(t.date) >= 0 || !parseDate(t.date).exact);
+  const next = (m.tests || []).filter(t => !t.done && (daysUntil(t.until || t.date) >= 0 || !parseDate(t.date).exact)).sort((a, b) => parseDate(a.date).date - parseDate(b.date).date)[0];
   return `<a class="mod${live ? "" : " empty"}" href="#${m.slug}">
     ${m.code ? `<span class="code">${esc(m.code)}</span>` : ""}
     <h3>${esc(m.name)}</h3>
@@ -113,12 +114,12 @@ function renderModule(m, pack) {
   }
   app.innerHTML = topBar(crumbs) + `
     <section class="hero"><span class="eyebrow">${esc([m.code, m.lecturer].filter(Boolean).join(" · "))}</span><h1>${esc(m.name)}</h1>
-      <p class="muted">${pack.questions.length} practice questions · ${pack.cards.length} flashcards · ${pack.written.length} exam-style questions · ${pack.topics.length} topics</p></section>
+      ${(() => { const bits = [[pack.questions.length, "practice questions"], [pack.cards.length, "flashcards"], [pack.written.length, "exam-style questions"], [pack.topics.length, "topics"]].filter(b => b[0]).map(b => `${b[0]} ${b[1]}`); return bits.length ? `<p class="muted">${bits.join(" · ")}</p>` : ""; })()}</section>
     <section class="stack"><h2>Tests</h2><div class="tests">${pack.tests.map(t => `
       <a class="test" href="#${m.slug}--${t.id}">
-        <div class="row" style="justify-content:space-between"><span class="eyebrow">${esc(tLabel(t))} · ${esc(t.weight)}</span>${duePill(t.date, t.when)}</div>
+        <div class="row" style="justify-content:space-between"><span class="eyebrow">${esc(tLabel(t))} · ${esc(t.weight)}</span>${duePill(t.date, t.when, t.until)}</div>
         <h3>${esc(t.title)}</h3><span class="meta">${esc(t.format)}</span></a>`).join("")}</div></section>
-    <section class="stack"><h2>Notes</h2>${notesHTML(pack)}</section>
+    ${pack.topics.length ? `<section class="stack"><h2>Notes</h2>${notesHTML(pack)}</section>` : ""}
     <p class="muted" style="font-size:13px">Sources: ${esc(pack.sources)}</p>${footer}`;
 }
 function notesHTML(pack, only) {
@@ -127,7 +128,7 @@ function notesHTML(pack, only) {
 }
 
 // ---------- test ----------
-const MODE_LABEL = { sheet: "Open-book sheet", mock: "Timed mock", drill: "Question drill", cards: "Flashcards", calc: "Calculations", written: "Exam questions", notes: "Notes" };
+const MODE_LABEL = { info: "What to do", sheet: "Open-book sheet", mock: "Timed mock", drill: "Question drill", cards: "Flashcards", calc: "Calculations", written: "Exam questions", notes: "Notes" };
 const TECH_LABEL = { sheet: "Open-book sheet", notes: "Read notes", drill: "Question drill", cards: "Flashcards", calc: "Calculations", written: "Exam questions" };
 
 function renderTest(m, pack, test) {
@@ -142,12 +143,12 @@ function renderTest(m, pack, test) {
   app.innerHTML = topBar([["Library", "home"], [m.name, m.slug], [test.title]]) + `
     <section class="hero"><span class="eyebrow">${esc(m.name)}</span><h1>${esc(test.title)}</h1>
       <div class="chips"><span class="chip">${esc(tLabel(test))}</span><span class="chip">${esc(test.format)}</span><span class="chip"><strong>${esc(test.weight)}</strong> of the module</span></div></section>
-    <section class="stack"><h2>How to study each topic</h2>
+    ${pack.topics.length && test.modes.some(x => x !== "info") ? `<section class="stack"><h2>How to study each topic</h2>
       <div class="plan">${pack.topics.map(t => {
         const usable = t.modes.filter(x => x === "notes" || modes.includes(x) || (x === "drill" && modes.includes("mock")));
         const list = usable.length ? usable : ["notes"];
         return `<div class="pt"><h3>${esc(t.name)}</h3><div class="tech">${list.map(x => `<button class="tbtn" data-mode="${x}" data-topic="${t.id}">${TECH_LABEL[x]}</button>`).join("")}</div><p class="why">${esc(t.why)}</p></div>`;
-      }).join("")}</div></section>
+      }).join("")}</div></section>` : ""}
     <section class="stack" id="study">
       <nav class="tabs" role="tablist">${modes.map((x, i) => `<button class="tab" role="tab" id="tab-${x}" data-tab="${x}" aria-selected="${i === 0}">${MODE_LABEL[x]}</button>`).join("")}</nav>
       <div id="panel"></div>
@@ -157,7 +158,7 @@ function renderTest(m, pack, test) {
     app.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === mode));
     if (cleanup) { cleanup(); cleanup = null; }
     const panel = document.getElementById("panel");
-    ({ sheet: modeSheet, mock: modeMock, drill: modeDrill, cards: modeCards, calc: modeCalc, written: modeWritten, notes: modeNotes })[mode](panel, ctx, topic);
+    ({ info: modeInfo, sheet: modeSheet, mock: modeMock, drill: modeDrill, cards: modeCards, calc: modeCalc, written: modeWritten, notes: modeNotes })[mode](panel, ctx, topic);
   };
   app.querySelectorAll(".tab").forEach(b => b.onclick = () => open(b.dataset.tab));
   app.querySelectorAll(".tbtn").forEach(b => b.onclick = () => {
@@ -676,6 +677,12 @@ function modeSheet(panel, ctx) {
   panel.innerHTML = `<div class="sheet stack printable">${src || "<p>No sheet for this test.</p>"}
     <div class="row noprint"><button class="btn" id="print">Print this sheet</button><span class="muted" style="font-size:13px">Printed notes are allowed in the test. Bring this plus your worked tutorial answers.</span></div></div>`;
   panel.querySelector("#print").onclick = () => { document.body.classList.add("printing"); window.print(); setTimeout(() => document.body.classList.remove("printing"), 500); };
+}
+
+// ---------- what to do (assignment / logistics info) ----------
+function modeInfo(panel, ctx) {
+  const src = ((ctx.pack._all || ctx.pack).info || {})[ctx.test.info];
+  panel.innerHTML = `<div class="sheet stack infobox">${src || "<p>No details yet.</p>"}</div>`;
 }
 
 // ---------- notes ----------

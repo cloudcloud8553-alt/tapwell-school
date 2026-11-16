@@ -1,0 +1,25 @@
+// Source for data/marketing-principles.json: assignment info only
+module.exports = {
+  slug: "marketing-principles",
+  topics: [], questions: [], cards: [], written: [], calc: [],
+  info: {
+    aldi: `
+<p><b>ALDI Ireland case study (60%).</b> You're a junior marketer on Aldi Ireland's team. Use the module's marketing principles to analyse the situation and explain how the brand could respond.</p>
+<ul>
+<li class="todo"><b>Submit on Moodle by Tue 1 Dec, 6pm</b> ("SUBMIT HERE- ALDI"). Email submissions aren't accepted. It goes through Turnitin.</li>
+<li><b>1,500 words</b>, excluding the cover page, appendix, bibliography and declaration sheet.</li>
+<li>Times New Roman, 12pt, 1.5 spacing. Harvard referencing throughout.</li>
+<li>Cover page with your name, K number, course and module. The <b>declaration sheet</b> (on Moodle under CA) must be the final page.</li></ul>
+<p><b>Questions:</b></p>
+<ul>
+<li><b>Segmentation, targeting and positioning (40 marks):</b> four ways to segment the Irish grocery market, each with an example customer group · pick one segment and give two reasons Aldi might target it · describe Aldi's positioning and the customer value it communicates · one way Lidl's positioning differs from Aldi's (not just price).</li>
+<li><b>The marketing mix (40 marks):</b> two product decisions supporting the target market · why price matters so much to Aldi, and the risks of relying heavily on it · and the remaining Place and Promotion parts (see the brief).</li>
+<li><b>Environment:</b> the micro-environment (customers, competitors, suppliers, employees) and macro-environment (PEST) are covered in the case. Check the brief for how the remaining marks are split.</li></ul>
+<p>Relevant lectures on Moodle: Marketing Environment, STP, and Evolution of Marketing Mix.</p>`,
+  },
+  tests: [
+    { id: "aldi", title: "ALDI case study", date: "2026-12-01", when: "Tue 1 Dec · 6pm", weight: "60%",
+      format: "Individual written assignment · 1,500 words · submit on Moodle", modes: ["info"], info: "aldi" },
+  ],
+  sources: "Marketing Principles Moodle: the ALDI 60% brief and the SUBMIT HERE assignment page.",
+};

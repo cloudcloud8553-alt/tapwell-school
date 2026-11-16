@@ -184,7 +184,17 @@ module.exports = {
   slug: "business-management",
   topics, questions, cards, written,
   calc: [],
+  info: {
+    a2: `<p><b>Assessment 2 (20%), Mon 23 Nov.</b> Kelly hands out a <b>case study on Wed 18 Nov</b>, and the questions are based on the current class topic: <b>Reading the Business Landscape</b> (scanning the environment, globalisation, SWOT and industry competitive analysis, using the Purcells case study as the model).</p>
+<ul><li class="todo">Wed 18 Nov: get the case. Read it twice the same evening and highlight every external factor.</li>
+<li>Before Monday: run the case through PESTEL, then SWOT, then Porter's five forces. One page each, specific to that company.</li>
+<li>Practise the "Business environment" exam question below, timed.</li>
+<li>Re-read the Purcells case analysis on Moodle to see the structure Kelly expects.</li></ul>`,
+  },
   tests: [
+    { id: "a2", title: "Assessment 2: case study", date: "2026-11-23", when: "Mon 23 Nov · case given Wed 18 Nov", weight: "20%",
+      format: "Case study questions on the current topic: Reading the Business Landscape", info: "a2",
+      modes: ["info", "written", "cards", "notes"], topics: ["env"] },
     { id: "final", title: "Christmas exam", date: "2026-12", when: "From 4 Dec", weight: "70%",
       format: "Written essay-style answers: explain, analyse and apply theory to real organisations",
       modes: ["written", "cards", "drill", "notes"] },

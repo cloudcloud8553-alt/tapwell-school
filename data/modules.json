@@ -14,17 +14,18 @@
      "pack": true,
      "tests": [
       {
-       "id": "mcq",
-       "title": "In-class MCQ",
-       "date": "2026-11-13",
-       "weight": "30%"
-      },
-      {
        "id": "final",
        "title": "Final written exam",
        "date": "2026-12",
        "weight": "70%",
        "when": "From 4 Dec"
+      },
+      {
+       "id": "mcq",
+       "title": "In-class MCQ",
+       "date": "2026-11-13",
+       "weight": "30%",
+       "done": true
       }
      ]
     },
@@ -32,7 +33,32 @@
      "slug": "acct06080",
      "name": "Business Communication and Analysis",
      "code": "ACCT 06080",
-     "note": "Assessed by ongoing tutorial work and assignments, so there is no exam to study for."
+     "pack": true,
+     "lecturer": "Dr Kelly Browne",
+     "tests": [
+      {
+       "id": "presentation",
+       "title": "Group presentation",
+       "date": "2026-11-17",
+       "when": "17–26 Nov · book your slot Tue 17",
+       "weight": "20%",
+       "until": "2026-11-26"
+      },
+      {
+       "id": "gmetrix",
+       "title": "GMetrix PowerPoint test",
+       "date": "2026-11-19",
+       "when": "Window 10–19 Nov · labs",
+       "weight": "20%"
+      },
+      {
+       "id": "quiz",
+       "title": "End-of-year in-class exam",
+       "date": "2026-11-24",
+       "when": "Tue 24 Nov · in class",
+       "weight": "30%"
+      }
+     ]
     },
     {
      "slug": "business-management",
@@ -41,6 +67,13 @@
      "lecturer": "Dr Kelly Browne",
      "pack": true,
      "tests": [
+      {
+       "id": "a2",
+       "title": "Assessment 2: case study",
+       "date": "2026-11-23",
+       "when": "Mon 23 Nov · case given Wed 18 Nov",
+       "weight": "20%"
+      },
       {
        "id": "final",
        "title": "Christmas exam",
@@ -93,7 +126,17 @@
      "slug": "marketing-principles",
      "name": "Marketing Principles",
      "code": "MKTG 06035",
-     "note": "Assessed by assignments and presentations, so there is no exam to study for."
+     "pack": true,
+     "lecturer": "Jessica Dalton",
+     "tests": [
+      {
+       "id": "aldi",
+       "title": "ALDI case study",
+       "date": "2026-12-01",
+       "when": "Tue 1 Dec · 6pm",
+       "weight": "60%"
+      }
+     ]
     }
    ]
   },
