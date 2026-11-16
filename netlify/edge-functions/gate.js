@@ -1,4 +1,4 @@
-// Shared-password gate for school.tapwell.ie.
+// Shared-password gate for study.tapwell.ie.
 // Set SITE_PASSWORD in Netlify → Site configuration → Environment variables.
 // Changing the password logs everyone out (the cookie is a hash of it).
 const COOKIE = "ts_auth";

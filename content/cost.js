@@ -207,7 +207,7 @@ module.exports = {
     { id: "oar", t: "ovh" }, { id: "selling-price", t: "price" },
   ],
   tests: [
-    { id: "final", title: "Christmas exam", date: "2026-12", when: "From 4 Dec", weight: "70%",
+    { id: "final", title: "Christmas exam", date: "2026-12-11", when: "Fri 11 Dec · 9:30–11:30", weight: "70%",
       format: "Format TBC: check with Ali whether it's on paper or online on Moodle · bring a calculator",
       modes: ["calc", "written", "cards", "drill", "notes"] },
   ],

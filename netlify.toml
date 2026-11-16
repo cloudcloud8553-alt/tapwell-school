@@ -11,3 +11,10 @@
   for = "/data/*"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# Old address: send anyone using school.tapwell.ie to the new domain
+[[redirects]]
+  from = "https://school.tapwell.ie/*"
+  to = "https://study.tapwell.ie/:splat"
+  status = 301
+  force = true

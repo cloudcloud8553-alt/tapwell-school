@@ -16,9 +16,9 @@
       {
        "id": "final",
        "title": "Final written exam",
-       "date": "2026-12",
+       "date": "2026-12-14",
        "weight": "70%",
-       "when": "From 4 Dec"
+       "when": "Mon 14 Dec · 14:00–16:00"
       },
       {
        "id": "mcq",
@@ -77,8 +77,8 @@
       {
        "id": "final",
        "title": "Christmas exam",
-       "date": "2026-12",
-       "when": "From 4 Dec",
+       "date": "2026-12-09",
+       "when": "Wed 9 Dec · 14:00–16:00",
        "weight": "70%"
       }
      ]
@@ -93,8 +93,8 @@
       {
        "id": "final",
        "title": "Christmas exam",
-       "date": "2026-12",
-       "when": "From 4 Dec",
+       "date": "2026-12-11",
+       "when": "Fri 11 Dec · 9:30–11:30",
        "weight": "70%"
       }
      ]
@@ -116,8 +116,8 @@
       {
        "id": "final",
        "title": "Christmas exam",
-       "date": "2026-12",
-       "when": "From 4 Dec",
+       "date": "2026-12-08",
+       "when": "Tue 8 Dec · 9:30–11:30",
        "weight": "70%"
       }
      ]

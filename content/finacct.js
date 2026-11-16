@@ -304,7 +304,7 @@ module.exports = {
     { id: "depreciation", title: "Depreciation assignment", date: "2026-11-19", when: "Thu 19 Nov · 1pm", weight: "15%",
       format: "In class · open book (printed notes allowed, no laptops or phones) · bring a calculator",
       modes: ["sheet", "calc", "written", "cards", "drill", "notes"], topics: ["dep", "disp"] },
-    { id: "final", title: "Christmas exam", date: "2026-12", when: "From 4 Dec", weight: "70%",
+    { id: "final", title: "Christmas exam", date: "2026-12-08", when: "Tue 8 Dec · 9:30–11:30", weight: "70%",
       format: "Section A: P&L and SOFP, compulsory, 40 marks · Section B: any 2 of 3, 30 marks each",
       modes: ["written", "calc", "cards", "drill", "notes"] },
   ],

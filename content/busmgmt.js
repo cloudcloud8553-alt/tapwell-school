@@ -195,7 +195,7 @@ module.exports = {
     { id: "a2", title: "Assessment 2: case study", date: "2026-11-23", when: "Mon 23 Nov · case given Wed 18 Nov", weight: "20%",
       format: "Case study questions on the current topic: Reading the Business Landscape", info: "a2",
       modes: ["info", "written", "cards", "notes"], topics: ["env"] },
-    { id: "final", title: "Christmas exam", date: "2026-12", when: "From 4 Dec", weight: "70%",
+    { id: "final", title: "Christmas exam", date: "2026-12-09", when: "Wed 9 Dec · 14:00–16:00", weight: "70%",
       format: "Written essay-style answers: explain, analyse and apply theory to real organisations",
       modes: ["written", "cards", "drill", "notes"] },
   ],

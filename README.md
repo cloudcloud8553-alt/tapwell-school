@@ -1,6 +1,6 @@
 # Tapwell School
 
-Study library for US845 Accounting & Finance at TUS Moylish. Live at **school.tapwell.ie**.
+Study library for US845 Accounting & Finance at TUS Moylish. Live at **study.tapwell.ie**.
 
 Plain static site: no build step. Netlify deploys `main` automatically.
 
