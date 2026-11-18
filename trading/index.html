@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tapwell Trading</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2453D6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="/trading/trading.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="brand" href="/trading/">tapwell<span class="dot">.</span><small>trading</small></a>
+    <nav class="toplinks"><a href="/logout">Log out</a></nav>
+  </div>
+  <section class="hero">
+    <div class="eyebrow">Open simulation library</div>
+    <h1>See how money, risk and luck really play out</h1>
+    <p class="muted">Interactive simulators for investing and trading. Change the numbers, press play, and watch what happens.</p>
+  </section>
+  <input class="search" id="q" type="search" placeholder="Search the library" aria-label="Search tools">
+  <div class="chips" id="cats"></div>
+  <div class="grid" id="tools"></div>
+  <footer>For education only. Not financial advice. Simulated results don't predict real returns.</footer>
+</div>
+<script>
+// Add a tool: put its page in /trading/<slug>/index.html and add an entry here. status "soon" shows a placeholder card.
+const TOOLS = [
+  { slug: "compound", title: "Compound growth simulator", desc: "Invest weekly through college, then monthly after. See typical, bad-luck and good-luck outcomes with real up and down months.", cat: "Investing", status: "live" },
+  { slug: "position-size", title: "Position size calculator", desc: "How much to buy so one losing trade only costs the risk you chose.", cat: "Trading", status: "soon" },
+  { slug: "risk-of-ruin", title: "Risk of ruin simulator", desc: "Win rate, reward-to-risk and bet size: how likely are you to blow up the account?", cat: "Risk", status: "soon" },
+];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let cat = "All";
+const cats = ["All", ...new Set(TOOLS.map(t => t.cat))];
+function render() {
+  document.getElementById("cats").innerHTML = cats.map(c => `<button class="chip${c === cat ? " on" : ""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const list = TOOLS.filter(t => (cat === "All" || t.cat === cat) && (!q || (t.title + " " + t.desc + " " + t.cat).toLowerCase().includes(q)));
+  document.getElementById("tools").innerHTML = list.length ? list.map(t => t.status === "live"
+    ? `<a class="tool" href="/trading/${t.slug}/"><div class="cat">${esc(t.cat)}</div><h3>${esc(t.title)}</h3><p class="muted" style="font-size:14px">${esc(t.desc)}</p><div class="foot"><span class="live">● Open</span></div></a>`
+    : `<div class="tool soon"><div class="cat">${esc(t.cat)}</div><h3>${esc(t.title)}</h3><p class="muted" style="font-size:14px">${esc(t.desc)}</p><div class="foot">Coming soon</div></div>`).join("")
+    : `<p class="muted">Nothing matches that yet.</p>`;
+}
+document.getElementById("cats").onclick = e => { const b = e.target.closest(".chip"); if (b) { cat = b.dataset.c; render(); } };
+document.getElementById("q").oninput = render;
+render();
+</script>
+</body>
+</html>

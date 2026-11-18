@@ -1,7 +1,9 @@
 // Shared-password gate for study.tapwell.ie.
 // Set SITE_PASSWORD in Netlify → Site configuration → Environment variables.
 // Changing the password logs everyone out (the cookie is a hash of it).
+// A second password (TRADING_PASSWORD, default "TRADING", any case) opens only /trading/.
 const COOKIE = "ts_auth";
+const TCOOKIE = "ts_trade";
 const DAYS = 120;
 const PUBLIC = new Set(["/favicon.svg", "/apple-touch-icon.png", "/favicon.ico"]);
 
@@ -30,7 +32,7 @@ button{font:inherit;font-weight:600;padding:11px;border-radius:8px;border:0;back
 </style></head><body>
 <form method="post" action="/login">
 <h1>tapwell<span class="dot">.</span><small>school</small></h1>
-<p>Enter the class password to open the study library.</p>
+<p>Enter your password to open the library.</p>
 ${error ? '<p class="err">That password isn\'t right. Ask whoever sent you the link.</p>' : ""}
 <input type="password" name="password" aria-label="Password" placeholder="Password" autofocus required>
 <button>Open library</button>
@@ -40,28 +42,43 @@ ${error ? '<p class="err">That password isn\'t right. Ask whoever sent you the l
 export default async (req, context) => {
   const pw = Netlify.env.get("SITE_PASSWORD");
   if (!pw) return context.next(); // no password set: site is open
+  const tpw = Netlify.env.get("TRADING_PASSWORD") || "TRADING";
 
   const url = new URL(req.url);
   if (url.hostname === "school.tapwell.ie") return Response.redirect(`https://study.tapwell.ie${url.pathname}${url.search}`, 301); // old address
   if (PUBLIC.has(url.pathname)) return context.next(); // icons show on the login page too
   const expected = await token(pw);
   const cookies = req.headers.get("cookie") || "";
-  const has = cookies.split(/;\s*/).some(c => c === `${COOKIE}=${expected}`);
+  const texpected = await token("trading:" + tpw);
+  const jar = cookies.split(/;\s*/);
+  const has = jar.some(c => c === `${COOKIE}=${expected}`);
+  const hasTrade = jar.some(c => c === `${TCOOKIE}=${texpected}`);
+  const isTrading = url.pathname === "/trading" || url.pathname.startsWith("/trading/");
 
   if (url.pathname === "/login" && req.method === "POST") {
     const form = await req.formData();
-    if (form.get("password") === pw) {
+    const given = String(form.get("password") || "");
+    if (given === pw) {
       return new Response(null, { status: 303, headers: {
         location: "/",
         "set-cookie": `${COOKIE}=${expected}; Path=/; Max-Age=${DAYS * 86400}; HttpOnly; Secure; SameSite=Lax`,
       } });
     }
+    if (given.trim().toUpperCase() === tpw.toUpperCase()) {
+      return new Response(null, { status: 303, headers: {
+        location: "/trading/",
+        "set-cookie": `${TCOOKIE}=${texpected}; Path=/; Max-Age=${DAYS * 86400}; HttpOnly; Secure; SameSite=Lax`,
+      } });
+    }
     return page(true);
   }
   if (url.pathname === "/logout") {
-    return new Response(null, { status: 303, headers: { location: "/", "set-cookie": `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax` } });
+    const h = new Headers({ location: "/" });
+    for (const c of [COOKIE, TCOOKIE]) h.append("set-cookie", `${c}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+    return new Response(null, { status: 303, headers: h });
   }
   if (has) return context.next();
+  if (hasTrade) return isTrading ? context.next() : Response.redirect(new URL("/trading/", url), 302); // trading password only opens /trading/
   return page(false);
 };
 

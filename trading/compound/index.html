@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Compound growth simulator · Tapwell Trading</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2453D6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="/trading/trading.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="brand" href="/trading/">tapwell<span class="dot">.</span><small>trading</small></a>
+    <nav class="toplinks"><a href="/logout">Log out</a></nav>
+  </div>
+  <nav class="crumbs"><a href="/trading/">Library</a><span>/</span><span>Compound growth</span></nav>
+  <section class="hero">
+    <h1>Compound growth simulator</h1>
+    <p class="muted">Invest weekly through college, then monthly after. 300 random futures over 20 years, with real up and down months.</p>
+  </section>
+
+  <div class="sim">
+    <div class="side sheet controls">
+      <div class="ctl"><div class="ch"><span>Average return</span></div><div class="chips" id="rc"></div><p class="note" id="rnote"></p></div>
+      <div class="ctl"><div class="ch"><span>How much months swing</span><b id="vv"></b></div><input type="range" id="vs" min="0" max="40" step="0.5"></div>
+      <div class="ctl"><div class="ch"><span>"Average" means</span></div><div class="chips" id="ac"></div><p class="note" id="anote"></p></div>
+      <div class="ctl"><div class="ch"><span>During college (yrs 0–4), per week</span><b id="wv"></b></div><input type="range" id="ws" min="0" max="300" step="10"></div>
+      <div class="ctl"><div class="ch"><span>Starter phase after college</span><b id="syv"></b></div><input type="range" id="sys" min="0" max="10" step="1"></div>
+      <div class="ctl" id="swrap"><div class="ch"><span>Starter amount, per month</span><b id="sv"></b></div><input type="range" id="ss" min="0" max="3000" step="50"></div>
+      <div class="ctl"><div class="ch"><span id="mlab">After college, per month</span><b id="mv"></b></div><input type="range" id="ms" min="0" max="5000" step="100"></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <div class="sheet" style="display:flex;flex-direction:column;gap:12px">
+        <div class="row"><div class="chips" id="lc"></div><button class="btn ghost small" id="rr">Re-roll</button></div>
+        <div class="chartbox"><canvas id="cv" aria-label="Chart of typical, bad-luck and good-luck outcomes over 20 years"></canvas></div>
+        <div class="legend" id="lg"></div>
+        <div class="row" style="justify-content:flex-start"><button class="btn small" id="pl">▶ Play a random path</button></div>
+        <div class="readout" id="ro">Watch one possible future unfold month by month.</div>
+      </div>
+      <div class="sheet" style="display:flex;flex-direction:column;gap:12px">
+        <div class="ctl"><div class="ch"><span>Look at year</span><b id="yv"></b></div><input type="range" id="ys" min="1" max="20" step="1"></div>
+        <div class="stats">
+          <div class="stat"><span>Typical</span><b id="k1"></b></div>
+          <div class="stat"><span>You put in</span><b id="k2"></b></div>
+          <div class="stat"><span>Bad luck (1 in 10)</span><b id="k3" style="color:var(--bad)"></b></div>
+          <div class="stat"><span>Good luck (1 in 10)</span><b id="k4" style="color:var(--good)"></b></div>
+          <div class="stat"><span>Typical profit</span><b id="k5"></b></div>
+          <div class="stat"><span>Chance below what you put in</span><b id="k6"></b></div>
+        </div>
+      </div>
+      <details class="note2">
+        <summary>How to read this</summary>
+        <div class="nb"><ul>
+          <li><b>Typical</b> is the median: the middle result out of 300 simulated futures. Half do better, half do worse. The plain average would be higher, because a few huge lucky runs pull it up.</li>
+          <li><b>Bad luck</b> is the 10th percentile: only 1 in 10 futures do worse.</li>
+          <li><b>Good luck</b> is the 90th percentile: only 1 in 10 futures do better.</li>
+          <li>The shaded band covers 8 in 10 outcomes. Bigger monthly swings widen the band and drag the typical line down. That's volatility drag: −50% needs +100% just to get back to even.</li>
+          <li>Tap the chart to jump to that year. Tap the legend to hide or show lines.</li>
+        </ul></div>
+      </details>
+    </div>
+  </div>
+  <footer>For education only. Not financial advice. Simulated results don't predict real returns.</footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const RATES = [
+  ["sp", "S&P ~10%/yr", Math.pow(1.1, 1 / 12) - 1, "good", "Long-run market average. Realistic."],
+  ["y20", "20%/yr", Math.pow(1.2, 1 / 12) - 1, "flag", "Elite fund-manager level over decades."],
+  ["m1", "1%/mo", 0.01, "flag", "About 13%/yr. Good, hard to sustain."],
+  ["m2", "2%/mo", 0.02, "bad", "About 27%/yr. Top-tier pro territory."],
+  ["m3", "3%/mo", 0.03, "bad", "About 43%/yr. Almost nobody sustains this."],
+  ["m5", "5%/mo", 0.05, "bad", "About 80%/yr. Beats every fund in history."],
+  ["m10", "10%/mo", 0.10, "bad", "About 214%/yr. Not achievable long term."],
+];
+const st = { R: "sp", V: 4.5, AV: "s", W: 30, SY: 0, S: 300, M: 1000, Y: 20, L: "log", seed: 7 };
+const N = 300, T = 240;
+let res = null, chart = null, play = null, pseed = 1;
+
+function rngF(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(rng) { const u = rng() || 1e-9, w = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * w); }
+function fmt(v) {
+  const u = [[1e18, "quintillion"], [1e15, "quadrillion"], [1e12, "trillion"], [1e9, "billion"], [1e6, "million"]];
+  const s = v < 0 ? "−" : "", a = Math.abs(v);
+  for (const [d, n] of u) if (a >= d) { const x = a / d; return `${s}€${x < 10 ? x.toFixed(1) : Math.round(x).toLocaleString("en-IE")} ${n}`; }
+  return `${s}€${(Math.round(a / 10) * 10).toLocaleString("en-IE")}`;
+}
+function fmtS(v) { const u = [[1e18, "Qi"], [1e15, "Q"], [1e12, "T"], [1e9, "B"], [1e6, "M"], [1e3, "k"]]; for (const [d, n] of u) if (Math.abs(v) >= d) return "€" + (+(v / d).toFixed(v / d < 10 ? 1 : 0)) + n; return "€" + Math.round(v); }
+const contrib = m => m <= 48 ? st.W * 52 / 12 : (m <= 48 + st.SY * 12 ? st.S : st.M);
+const rate = () => RATES.find(x => x[0] === st.R);
+function mu() { const r = rate()[2], v = st.V / 100; return st.AV === "s" ? Math.log(1 + r) - v * v / 2 : Math.log(1 + r); }
+
+function sim() {
+  const m0 = mu(), v = st.V / 100, rng = rngF(st.seed), mat = new Float64Array(N * T), put = new Array(T);
+  for (let p = 0; p < N; p++) {
+    let val = 0, inp = 0;
+    for (let m = 0; m < T; m++) { const c = contrib(m + 1); val = (val + c) * Math.exp(m0 + v * gauss(rng)); inp += c; mat[m * N + p] = val; if (p === 0) put[m] = inp; }
+  }
+  const p10 = [], p50 = [], p90 = [], yr = {};
+  for (let m = 0; m < T; m++) {
+    const a = mat.slice(m * N, (m + 1) * N).sort();
+    p10.push(a[Math.floor(N * .1)]); p50.push(a[Math.floor(N * .5)]); p90.push(a[Math.floor(N * .9)]);
+    if ((m + 1) % 12 === 0) yr[(m + 1) / 12] = a;
+  }
+  return { p10, p50, p90, put, yr };
+}
+
+function mkChips(id, arr, key) {
+  const el = $(id);
+  el.innerHTML = arr.map(a => `<button class="chip" data-v="${a[0]}">${a[1]}</button>`).join("");
+  el.onclick = e => { const b = e.target.closest(".chip"); if (!b) return; st[key] = b.dataset.v; if (key === "L") { applyScale(); sync(false); } else sync(true); };
+}
+mkChips("rc", RATES.map(r => [r[0], r[1]]), "R");
+mkChips("ac", [["s", "Simple average of months"], ["c", "Actual compounded growth"]], "AV");
+mkChips("lc", [["log", "Log scale"], ["lin", "Normal scale"]], "L");
+[["vs", "V"], ["ws", "W"], ["sys", "SY"], ["ss", "S"], ["ms", "M"], ["ys", "Y"]].forEach(([id, k]) => {
+  const el = $(id); el.value = st[k]; el.oninput = () => { st[k] = +el.value; sync(k !== "Y"); };
+});
+$("rr").onclick = () => { st.seed++; sync(true); };
+
+let raf = 0;
+function sync(recompute) {
+  document.querySelectorAll("#rc .chip").forEach(b => b.classList.toggle("on", b.dataset.v === st.R));
+  document.querySelectorAll("#ac .chip").forEach(b => b.classList.toggle("on", b.dataset.v === st.AV));
+  document.querySelectorAll("#lc .chip").forEach(b => b.classList.toggle("on", b.dataset.v === st.L));
+  const rt = rate(); $("rnote").textContent = rt[4]; $("rnote").style.color = `var(--${rt[3]})`;
+  $("vv").textContent = st.V ? `±${st.V}%${st.V === 4.5 ? " (S&P-like)" : ""}` : "None";
+  $("anote").textContent = st.AV === "s" ? "+25% then −15% averages +5%, but you're only 6.25% up overall. Swings eat growth." : "The account really grows at this rate. Months still swing around it.";
+  $("wv").textContent = st.W ? `€${st.W}` : "None";
+  $("syv").textContent = st.SY ? `${st.SY} yr${st.SY > 1 ? "s" : ""}` : "None";
+  $("swrap").hidden = !st.SY; $("sv").textContent = `€${st.S.toLocaleString("en-IE")}`;
+  $("mlab").textContent = st.SY ? `From year ${4 + st.SY}, per month` : "After college, per month";
+  $("mv").textContent = `€${st.M.toLocaleString("en-IE")}`; $("yv").textContent = `Year ${st.Y}`;
+  if (recompute) { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { stopPlay(true); res = sim(); draw(); cards(); }); }
+  else { cards(); if (chart) chart.update("none"); }
+}
+
+function cards() {
+  if (!res) return;
+  const i = st.Y * 12 - 1, a = res.yr[st.Y], put = res.put[i], t = res.p50[i];
+  $("k1").textContent = fmt(t); $("k2").textContent = fmt(put); $("k3").textContent = fmt(res.p10[i]); $("k4").textContent = fmt(res.p90[i]);
+  const pr = t - put; $("k5").textContent = (pr >= 0 ? "+" : "") + fmt(pr); $("k5").style.color = pr >= 0 ? "var(--good)" : "var(--bad)";
+  let c = 0; for (let j = 0; j < a.length; j++) if (a[j] < put) c++;
+  const pc = c / a.length * 100; $("k6").textContent = c === 0 ? "~0%" : pc < 1 ? "<1%" : Math.round(pc) + "%";
+}
+
+const vline = { id: "vline", afterDatasetsDraw(c) {
+  const x = c.scales.x.getPixelForValue(st.Y * 12 - 1), y = c.chartArea, ctx = c.ctx;
+  ctx.save(); ctx.strokeStyle = css("--putin"); ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y.top); ctx.lineTo(x, y.bottom); ctx.stroke(); ctx.restore();
+} };
+const lp = arr => arr.map(v => st.L === "log" && !(v > 0) ? null : v);
+function applyScale() { if (!chart) return; chart.options.scales.y.type = st.L === "log" ? "logarithmic" : "linear"; draw(); }
+function draw() {
+  if (!chart) {
+    const muted = css("--muted"), line = css("--line");
+    chart = new Chart($("cv"), {
+      type: "line",
+      data: { labels: Array.from({ length: T }, (_, i) => i + 1), datasets: [
+        { label: "Good luck", data: [], borderColor: "transparent", backgroundColor: css("--band"), fill: "+1", pointRadius: 0 },
+        { label: "Bad luck", data: [], borderColor: "transparent", fill: false, pointRadius: 0 },
+        { label: "Typical", data: [], borderColor: css("--typ"), borderWidth: 2, pointRadius: 0 },
+        { label: "Put in", data: [], borderColor: css("--putin"), borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0 },
+        { label: "Your path", data: [], borderColor: css("--path"), borderWidth: 1.5, pointRadius: 0, spanGaps: false },
+      ] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { filter: i => i.raw != null, callbacks: {
+          title: it => { const m = it[0].dataIndex + 1; return `Month ${m} · year ${(m / 12).toFixed(1)}`; },
+          label: c => `${c.dataset.label}: ${fmt(c.raw)}` } } },
+        onClick: (e, els, c) => { const p = c.scales.x.getValueForPixel(e.x); const y = Math.min(20, Math.max(1, Math.round((p + 1) / 12))); st.Y = y; $("ys").value = y; sync(false); },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: muted, autoSkip: false, maxRotation: 0, callback: (v, i) => (i + 1) % 48 === 0 ? "Yr " + (i + 1) / 12 : "" } },
+          y: { type: st.L === "log" ? "logarithmic" : "linear", grid: { color: line }, ticks: { color: muted, callback: v => { if (st.L === "log") { const l = Math.log10(v); return Math.abs(l - Math.round(l)) < 1e-6 ? fmtS(v) : ""; } return fmtS(v); } } },
+        },
+      },
+      plugins: [vline],
+    });
+    $("lg").innerHTML = [[0, "Luck range", "--band"], [2, "Typical", "--typ"], [3, "Put in", "--putin"], [4, "Your path", "--path"]]
+      .map(x => `<button class="lg" data-i="${x[0]}"><i style="background:var(${x[2]})"></i>${x[1]}</button>`).join("");
+    $("lg").onclick = e => {
+      const b = e.target.closest(".lg"); if (!b) return;
+      const i = +b.dataset.i, idx = i === 0 ? [0, 1] : [i], vis = chart.isDatasetVisible(idx[0]);
+      idx.forEach(k => chart.setDatasetVisibility(k, !vis)); b.classList.toggle("off", vis); chart.update("none");
+    };
+  }
+  const d = chart.data.datasets;
+  d[0].data = lp(res.p90); d[1].data = lp(res.p10); d[2].data = lp(res.p50); d[3].data = lp(res.put);
+  if (!play) d[4].data = [];
+  chart.update("none");
+}
+
+function stopPlay(clear) {
+  if (play) { clearInterval(play); play = null; }
+  $("pl").textContent = "▶ Play a random path";
+  if (clear && chart) { chart.data.datasets[4].data = []; chart.update("none"); $("ro").textContent = "Watch one possible future unfold month by month."; }
+}
+$("pl").onclick = () => {
+  if (play) { clearInterval(play); play = null; $("pl").textContent = "▶ Play another path"; return; }
+  const rng = rngF(st.seed * 977 + (pseed++)), m0 = mu(), v = st.V / 100, vals = [], rets = [];
+  let val = 0;
+  for (let m = 0; m < T; m++) { const g = Math.exp(m0 + v * gauss(rng)); val = (val + contrib(m + 1)) * g; vals.push(val); rets.push(g - 1); }
+  const ds = chart.data.datasets[4]; ds.data = new Array(T).fill(null);
+  if (!chart.isDatasetVisible(4)) { chart.setDatasetVisibility(4, true); document.querySelector('.lg[data-i="4"]').classList.remove("off"); }
+  $("pl").textContent = "❚❚ Pause";
+  let i = 0, up = 0;
+  play = setInterval(() => {
+    for (let k = 0; k < 2 && i < T; k++, i++) { ds.data[i] = st.L === "log" && !(vals[i] > 0) ? null : vals[i]; if (rets[i] > 0) up++; }
+    chart.update("none");
+    const r = rets[i - 1];
+    $("ro").innerHTML = `Month ${i} · <b style="color:var(--${r >= 0 ? "good" : "bad"})">${r >= 0 ? "+" : ""}${(r * 100).toFixed(1)}%</b> · balance <b>${fmt(vals[i - 1])}</b>`;
+    if (i >= T) {
+      let c = 0; for (const x of res.yr[20]) if (x < vals[T - 1]) c++;
+      $("ro").innerHTML = `Finished at <b>${fmt(vals[T - 1])}</b> · ${up} up months, ${T - up} down · luckier than ${Math.round(c / N * 100)}% of futures`;
+      clearInterval(play); play = null; $("pl").textContent = "▶ Play another path";
+    }
+  }, 30);
+};
+
+sync(true);
+</script>
+</body>
+</html>

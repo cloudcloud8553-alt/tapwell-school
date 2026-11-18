@@ -14,6 +14,7 @@ Plain static site: no build step. Netlify deploys `main` automatically.
 | `data/<slug>.json` | A module's study pack (only modules with `"pack": true`) |
 | `content/*.js` | Readable source for the newer packs; `node content/build.js` regenerates their JSON |
 | `netlify/edge-functions/gate.js` | Shared-password login |
+| `trading/` | Trading simulation library (own password, see below) |
 
 ## Adding a study pack
 
@@ -26,3 +27,9 @@ Each topic says which study modes suit it (`modes`) and why (`why`). Each test p
 ## Password
 
 Set `SITE_PASSWORD` under Netlify → Site configuration → Environment variables, then redeploy. Changing it logs everyone out. If it's unset, the site is open. `/logout` signs you out.
+
+## Trading library
+
+`/trading/` is a separate library of finance simulators. The password `TRADING` (any case) opens only `/trading/`; the class password opens everything, and the study home has a small "Trading" link at the bottom left. To change it, set `TRADING_PASSWORD` in Netlify's environment variables.
+
+Add a tool: put its page in `trading/<slug>/index.html` (copy `trading/compound/` as the template), then add an entry to `TOOLS` in `trading/index.html`.
