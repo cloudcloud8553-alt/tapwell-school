@@ -22,7 +22,7 @@
   <section class="hero">
     <div class="eyebrow">Open simulation library</div>
     <h1>See how money, risk and luck really play out</h1>
-    <p class="muted">Interactive simulators for investing and trading. Change the numbers, press play, and watch what happens.</p>
+    <p class="muted">Interactive simulators for investing and trading, plus accounting games for the US845 modules coming up. Change the numbers, press play, and beat your high score.</p>
   </section>
   <input class="search" id="q" type="search" placeholder="Search the library" aria-label="Search tools">
   <div class="chips" id="cats"></div>
@@ -33,6 +33,13 @@
 // Add a tool: put its page in /trading/<slug>/index.html and add an entry here. status "soon" shows a placeholder card.
 const TOOLS = [
   { slug: "compound", title: "Compound growth simulator", desc: "Invest weekly through college, then monthly after. See typical, bad-luck and good-luck outcomes with real up and down months.", cat: "Investing", status: "live" },
+  { slug: "break-even", title: "Break-even Tycoon", desc: "Run a campus coffee cart. Set your price, hit profit targets, earn stars and level up.", cat: "Accounting", game: true, mod: "Management Accounting – Decision Making", status: "live" },
+  { slug: "double-entry", title: "Double Entry Dash", desc: "90 seconds. Pick the right debit and credit for every transaction you can.", cat: "Accounting", game: true, mod: "Financial Accounting Fundamentals", status: "live" },
+  { slug: "account-sort", title: "Account Sort", desc: "Asset, liability, equity, income or expense? Or debit vs credit. 60 seconds, go.", cat: "Accounting", game: true, mod: "Financial Accounting Fundamentals", status: "live" },
+  { slug: "accept-reject", title: "Accept or Reject?", desc: "Special orders, make or buy, sunk costs. Make the call with relevant costs only.", cat: "Accounting", game: true, mod: "Management Accounting – Decision Making", status: "live" },
+  { slug: "variances", title: "Variance Hunter", desc: "Budget vs reality. Find the variance and call it favourable or adverse.", cat: "Accounting", game: true, mod: "Management Accounting – Planning & Control", status: "live" },
+  { slug: "take-home", title: "Take-home Pay", desc: "Guess what's left of a salary after Irish income tax, USC and PRSI, then see where it went.", cat: "Accounting", game: true, mod: "Income Tax & VAT, Sage Payroll", status: "live" },
+  { slug: "ratios", title: "Ratio Detective", desc: "Read the accounts, crack the ratio. The wrong answers are the classic exam mistakes.", cat: "Accounting", game: true, mod: "Financial Accounting for Companies", status: "live" },
   { slug: "position-size", title: "Position size calculator", desc: "How much to buy so one losing trade only costs the risk you chose.", cat: "Trading", status: "soon" },
   { slug: "risk-of-ruin", title: "Risk of ruin simulator", desc: "Win rate, reward-to-risk and bet size: how likely are you to blow up the account?", cat: "Risk", status: "soon" },
 ];
@@ -42,9 +49,9 @@ const cats = ["All", ...new Set(TOOLS.map(t => t.cat))];
 function render() {
   document.getElementById("cats").innerHTML = cats.map(c => `<button class="chip${c === cat ? " on" : ""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
   const q = document.getElementById("q").value.trim().toLowerCase();
-  const list = TOOLS.filter(t => (cat === "All" || t.cat === cat) && (!q || (t.title + " " + t.desc + " " + t.cat).toLowerCase().includes(q)));
+  const list = TOOLS.filter(t => (cat === "All" || t.cat === cat) && (!q || (t.title + " " + t.desc + " " + t.cat + " " + (t.mod || "")).toLowerCase().includes(q)));
   document.getElementById("tools").innerHTML = list.length ? list.map(t => t.status === "live"
-    ? `<a class="tool" href="/trading/${t.slug}/"><div class="cat">${esc(t.cat)}</div><h3>${esc(t.title)}</h3><p class="muted" style="font-size:14px">${esc(t.desc)}</p><div class="foot"><span class="live">● Open</span></div></a>`
+    ? `<a class="tool" href="/trading/${t.slug}/"><div class="tags"><span class="cat">${esc(t.cat)}</span>${t.game ? `<span class="pill game">Game</span>` : ""}</div><h3>${esc(t.title)}</h3><p class="muted" style="font-size:14px">${esc(t.desc)}</p>${t.mod ? `<div class="mod">For: ${esc(t.mod)}</div>` : ""}<div class="foot"><span class="live">● ${t.game ? "Play" : "Open"}</span></div></a>`
     : `<div class="tool soon"><div class="cat">${esc(t.cat)}</div><h3>${esc(t.title)}</h3><p class="muted" style="font-size:14px">${esc(t.desc)}</p><div class="foot">Coming soon</div></div>`).join("")
     : `<p class="muted">Nothing matches that yet.</p>`;
 }

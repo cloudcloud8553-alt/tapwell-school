@@ -32,4 +32,6 @@ Set `SITE_PASSWORD` under Netlify → Site configuration → Environment variabl
 
 `/trading/` is a separate library of finance simulators. The password `TRADING` (any case) opens only `/trading/`; the class password opens everything, and the study home has a small "Trading" link at the bottom left. To change it, set `TRADING_PASSWORD` in Netlify's environment variables.
 
+Accounting games (`account-sort`, `double-entry`, `break-even`, `accept-reject`, `variances`, `take-home`, `ratios`) use the shared engine in `trading/games.js`. Each has an `index.html` shell and a `game.js` with its questions. Take-home Pay uses 2026 Irish rates; update `take-home/game.js` after each Budget.
+
 Add a tool: put its page in `trading/<slug>/index.html` (copy `trading/compound/` as the template), then add an entry to `TOOLS` in `trading/index.html`.
